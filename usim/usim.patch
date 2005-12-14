@@ -1,0 +1,313 @@
+*** Makefile.orig	2005-09-24 16:53:34.000000000 -0400
+--- Makefile	2005-12-06 22:04:56.000000000 -0500
+***************
+*** 3,14 ****
+  # $Id: Makefile,v 1.14 2005/09/24 20:53:34 brad Exp $
+  #
+  
+! USIM_SRC = main.c decode.c ucode.c disk.c iob.c chaos.c syms.c config.c sdl.c
+! USIM_HDR = ucode.h config.h
+  
+  # Mac OSX
+  #USIM_LIBS = -lSDLmain -lSDL -lpthread -lobjc
+! USIM_LIBS = -lSDL -lpthread
+  
+  #CFLAGS = -O -pg -g -fprofile-arcs
+  #CFLAGS = -g
+--- 3,14 ----
+  # $Id: Makefile,v 1.14 2005/09/24 20:53:34 brad Exp $
+  #
+  
+! USIM_SRC = main.c decode.c ucode.c disk.c iob.c chaos.c syms.c config.c sdl.c lmkbdusb.c
+! USIM_HDR = ucode.h config.h lmkbdusb.h
+  
+  # Mac OSX
+  #USIM_LIBS = -lSDLmain -lSDL -lpthread -lobjc
+! USIM_LIBS = -lSDL -lpthread -lusb
+  
+  #CFLAGS = -O -pg -g -fprofile-arcs
+  #CFLAGS = -g
+*** iob.c.orig	2005-10-04 15:54:47.000000000 -0400
+--- iob.c	2005-12-07 00:54:35.000000000 -0500
+***************
+*** 292,299 ****
+  		iob_kbd_csr &= ~(1 << 5);
+  		break;
+  	case 0102:
+! //		*pv = (iob_key_scan >> 16) & 0177777;
+! 		*pv = 0177777;
+  		iob_kbd_csr &= ~(1 << 5);
+  		traceio("unibus: kbd high %011o\n", *pv);
+  		break;
+--- 292,298 ----
+  		iob_kbd_csr &= ~(1 << 5);
+  		break;
+  	case 0102:
+! 		*pv = (iob_key_scan >> 16) & 0177777;
+  		iob_kbd_csr &= ~(1 << 5);
+  		traceio("unibus: kbd high %011o\n", *pv);
+  		break;
+***************
+*** 417,422 ****
+--- 416,432 ----
+  	return iob_key_scan;
+  }
+  
++ void
++ iob_key_event(int key)
++ {
++ #if 0
++ 	printf("key 0%o\n", key);
++ #endif
++ 	iob_key_scan = key;  
++ 	iob_kbd_csr |= 1 << 5;
++ 	assert_unibus_interrupt(0260);
++ }
++ 
+  /****
+  ;FORMAT OF DATA IN 764100 (IF USING OLD KEYBOARD):
+  ; 00077   0006	  ;KEY CODE
+***************
+*** 429,435 ****
+  void
+  iob_sdl_key_event(int code, int extra)
+  {
+! 	int s, c;
+  
+  	if (0) printf("iob_sdl_key_event(code=%x,extra=%x)\n", code, extra);
+  
+--- 439,445 ----
+  void
+  iob_sdl_key_event(int code, int extra)
+  {
+! 	int s, c, scan;
+  
+  	if (0) printf("iob_sdl_key_event(code=%x,extra=%x)\n", code, extra);
+  
+***************
+*** 451,488 ****
+  	*/
+  	switch(code) {
+  	case SDLK_F1:
+! 		iob_key_scan = 0 | (3 << 8);	/* network */
+  		break;
+  	case SDLK_F2:
+! 		iob_key_scan = 1 | (3 << 8);	/* system */
+  		break;
+  	case SDLK_F3:
+! 		iob_key_scan = 16 | (3 << 8);	/* abort */
+  		break;
+  	case SDLK_F4:
+! 		iob_key_scan = 17;		/* clear */
+  		break;
+  	case SDLK_F5:
+! 		iob_key_scan = 44 | (3 << 8); /* help */
+  		break;
+  	case SDLK_F6:
+! 		iob_key_scan = 50 | (3 << 8); /* end */
+  		break;
+  	case SDLK_F7:
+! 		iob_key_scan = 16; /* call */
+  		break;
+  	case SDLK_F12:
+! 		iob_key_scan = 0; /* break */
+  		break;
+  	case SDLK_BACKSPACE:
+! 		iob_key_scan = 15; /* backspace */
+  		break;
+  	case SDLK_RETURN:
+! 		iob_key_scan = 50; /* CR */
+  		break;
+  	default:
+  #if 1
+! 	  iob_key_scan = kb_sdl_to_scancode[code][(extra & (3 << 6)) ? 1 : 0];
+  #else
+  		s = 0; /* unshifted */
+  		if (extra & (3 << 6))
+--- 461,498 ----
+  	*/
+  	switch(code) {
+  	case SDLK_F1:
+! 		scan = 0 | (3 << 8);	/* network */
+  		break;
+  	case SDLK_F2:
+! 		scan = 1 | (3 << 8);	/* system */
+  		break;
+  	case SDLK_F3:
+! 		scan = 16 | (3 << 8);	/* abort */
+  		break;
+  	case SDLK_F4:
+! 		scan = 17;		/* clear */
+  		break;
+  	case SDLK_F5:
+! 		scan = 44 | (3 << 8); /* help */
+  		break;
+  	case SDLK_F6:
+! 		scan = 50 | (3 << 8); /* end */
+  		break;
+  	case SDLK_F7:
+! 		scan = 16; /* call */
+  		break;
+  	case SDLK_F12:
+! 		scan = 0; /* break */
+  		break;
+  	case SDLK_BACKSPACE:
+! 		scan = 15; /* backspace */
+  		break;
+  	case SDLK_RETURN:
+! 		scan = 50; /* CR */
+  		break;
+  	default:
+  #if 1
+! 	  scan = kb_sdl_to_scancode[code][(extra & (3 << 6)) ? 1 : 0];
+  #else
+  		s = 0; /* unshifted */
+  		if (extra & (3 << 6))
+***************
+*** 497,515 ****
+  			printf("code %x, s %d, c %x\n", code, s, c);
+  		}
+  
+! 		iob_key_scan = c;
+  #endif
+  		break;
+  	}
+  #if 1   /* This is also for Fx, Bsp, Del */
+! 	iob_key_scan |= extra & ~(3 << 6);	     /* keep C/M bits, Shift in scancode tbl */
+  # if 0
+  	printf("code 0%o, extra 0%o, scan 0%o\n", code, extra, iob_key_scan);
+  # endif
+  #endif
+  
+! 	iob_kbd_csr |= 1 << 5;
+! 	assert_unibus_interrupt(0260);
+  }
+  
+  void
+--- 507,524 ----
+  			printf("code %x, s %d, c %x\n", code, s, c);
+  		}
+  
+! 		scan = c;
+  #endif
+  		break;
+  	}
+  #if 1   /* This is also for Fx, Bsp, Del */
+! 	scan |= extra & ~(3 << 6);	     /* keep C/M bits, Shift in scancode tbl */
+  # if 0
+  	printf("code 0%o, extra 0%o, scan 0%o\n", code, extra, iob_key_scan);
+  # endif
+  #endif
+  
+!         iob_key_event((0177777 << 16) | scan);
+  }
+  
+  void
+*** sdl.c.orig  2005-10-04 15:54:48.000000000 -0400
+--- sdl.c       2005-12-13 22:30:54.000000000 -0500
+***************
+*** 11,16 ****
+--- 11,20 ----
+  #include <SDL/SDL.h>
+  //#include <SDL/SDL_image.h>
+  
++ #include "lmkbdusb.h"
++ #include <pthread.h>
++ #include <errno.h>
++ 
+  #include "logo.h"
+  
+  extern int run_ucode_flag;
+***************
+*** 41,46 ****
+--- 45,52 ----
+  static DisplayState display_state;
+  static DisplayState *ds = &display_state;
+  
++ static BOOL lmkbd_open = FALSE;
++ 
+  #define MOUSE_EVENT_LBUTTON 1
+  #define MOUSE_EVENT_MBUTTON 2
+  #define MOUSE_EVENT_RBUTTON 4
+***************
+*** 175,180 ****
+--- 181,189 ----
+  		case SDL_KEYUP:
+  			sdl_process_key(&ev->key, 0);
+  			break;
++ 		case SDL_USEREVENT:
++ 			iob_key_event(ev->user.code);
++ 			break;
+  		case SDL_QUIT:
+  			sdl_system_shutdown_request();
+  			break;
+***************
+*** 377,382 ****
+--- 386,400 ----
+  	}
+  }
+  
++ static void display_cleanup(void)
++ {
++ 	sdl_cleanup();	
++ 	if (lmkbd_open) {
++ 		lmkbd_open = FALSE;
++ 		lmkbd_Close();
++ 	}
++ }
++ 
+  static void sdl_display_init(void)
+  {
+      int flags;
+***************
+*** 403,415 ****
+  
+      SDL_ShowCursor(0);
+  
+!     atexit(sdl_cleanup);
+  }
+  
+  int
+  display_init(void)
+  {
+  	sdl_display_init();
+  	return 0;
+  }
+  
+--- 421,456 ----
+  
+      SDL_ShowCursor(0);
+  
+!     atexit(display_cleanup);
+! }
+! 
+! static void *lmkbd_thread(void *arg)
+! {
+! 	while (lmkbd_open) {
+! 		int kev = lmkbd_Read(1000);
+! 		if (kev > 0) {
+! 			SDL_Event event;
+! 			event.type = SDL_USEREVENT;
+! 			event.user.code = kev;
+! 			event.user.data1 = event.user.data2 = NULL;
+! 			SDL_PushEvent(&event);
+! 		}
+! 		else if (kev != -ETIMEDOUT) {
+! 			break;
+! 		}
+! 	}
+! 	return NULL;
+  }
+  
+  int
+  display_init(void)
+  {
+  	sdl_display_init();
++ 	lmkbd_open = lmkbd_Open(CADR);
++ 	if (lmkbd_open) {
++ 		pthread_t thread;
++ 		pthread_create(&thread, NULL, lmkbd_thread, NULL);
++ 	}
+  	return 0;
+  }
+  

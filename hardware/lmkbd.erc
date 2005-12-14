@@ -1,0 +1,12 @@
+EAGLE Version 4.15 Copyright (c) 1988-2005 CadSoft
+
+Electrical Rule Check for D:/PIC/lmkbd/hardware/lmkbd.sch at 11/16/2005 07:37:44p
+
+WARNING: Sheet 1/1: POWER Pin IC1 VSS1 connected to GND
+WARNING: Sheet 1/1: POWER Pin IC1 VSS2 connected to GND
+WARNING: Sheet 1/1: POWER Pin IC1 VDD connected to +5V
+
+Board and schematic are consistent
+
+    0 errors
+    3 warnings
